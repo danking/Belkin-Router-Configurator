@@ -88,7 +88,7 @@
 (define settings (read (open-input-file path-to-settings-file)))
 ;; the Yj... stuff is a base64 encoded version of my password
 (define login-post (string->bytes/utf-8
-                    "action=submit&logout=&page=&pws=YjFuNTNqcTQ%3D"))
+                    "action=submit&logout=&page=&pws=REDACTED"))
 ;; The virtual servers url
 (define virt-srvs/url (string->url "http://192.168.2.1/fw_virt.cgi"))
 ;; Build the post request
