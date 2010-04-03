@@ -1,8 +1,10 @@
 #lang scheme
-(require net/url)
+(require net/url)                       ; for http requests
+(require scheme/runtime-path)           ; for define-runtime-path
 (provide (all-defined-out))
 
-(define path-to-settings-file "settings")
+;; Always refers to the settings file in the same directory as the executable
+(define-runtime-path path-to-settings-file "settings")
 
 ;; Virtual-Servers is a [ListOf (list NAME ENABLED PROTOCOL OCTET
 ;;                                    (list PORT PORT) (list PORT PORT))]
@@ -15,7 +17,7 @@
 ;; The first pair of ports is the inbound (from the internet) ports and the
 ;; second pair of ports is the serverbound (from the router) ports.
 
-;; [ElementOf [Virtual-Servers]] -> Boolean
+;; valid-syntax? : [ElementOf Virtual-Servers] -> Boolean
 (define (valid-syntax? x)
   (let ([port? (lambda (x) (and (number? x) (<= 1 x 65535)))])
     (and (string? (first x))
@@ -28,6 +30,8 @@
          (and (cons? (sixth x)) (port? (first (sixth x)))
               (port? (second (sixth x)))))))
 
+;; build-fwi : Virtual-Servers -> FWI
+;; builds a router specific "fwi" string for congiuring virtual servers
 (define (build-fwi vs)
   (foldr
    (lambda (x xs)
@@ -35,10 +39,7 @@
          (let ([enabled  (if (second x) "1" "0")]
                [iport1   (number->string (first  (fifth x)))]
                [iport2   (number->string (second (fifth x)))]
-               [protocol (cond [(symbol=? 'TCP (third x)) "1"]
-                               [(symbol=? 'UDP (third x)) "2"]
-                               [else (error 'build-fwi "Unknown protocol: ~a"
-                                            (third x))])]
+               [protocol (if (symbol=? 'TCP (third x)) "1" "2")]
                [octet    (number->string (fourth x))]
                [oport1   (number->string (first  (sixth x)))]
                [oport2   (number->string (second (sixth x)))])
@@ -48,6 +49,8 @@
          (error 'build-fwi "Bad syntax for entry: ~a" x)))
    "" vs))
 
+;; build-descriptions : Virtual-Servers -> FWI-Description
+;; builds a router specific "fwi-des" string for configuring virtual servers
 (define (build-descriptions vs)
   (foldr (lambda (x xs) (let ([ls (string->list (first x))])
                           (string-append (list->string
@@ -59,6 +62,7 @@
                                          "%20" xs)))
          "" vs))
 
+;; FWI
 ;; some obscure format for sepcifying ports
 ;; ENABLED-x-IPORT1-IPORT2-PROTOCOL-LASTOCTET-OPORT1-OPORT2<SPACE>
 ;; Where..
@@ -70,18 +74,23 @@
 ;;  - OPORT1 and OPORT2 specify the "private" (to-server) port range
 ;;    as [OPORT1, OPORT2]
 ;;  - <SPACE> is a space, written as %20
-(define fwi (string-append "1-x-80-80-1-101-80-80%201-x-21-21-1-101-21-21"
-                           "%201-x-27015-27015-2-11-27015-27015%201-x-3784-3784"
-                           "-1-11-3784-3784%201-x-6112-6112-1-6-6112-6112%201-x"
-                           "-22-22-1-101-22-22%201-x-3389-3389-1-102-3389-"
-                           "3389%201-x-1000-1010-1-101-1000-1010%201-x-"
-                           "54236-54236-1-11-54236-54236%20"))
+;; Example:
+;; (define fwi (string-append "1-x-80-80-1-101-80-80%201-x-21-21-1-101-21-21"
+;;                            "%201-x-27015-27015-2-11-27015-27015%201-x-3784-3784"
+;;                            "-1-11-3784-3784%201-x-6112-6112-1-6-6112-6112%201-x"
+;;                            "-22-22-1-101-22-22%201-x-3389-3389-1-102-3389-"
+;;                            "3389%201-x-1000-1010-1-101-1000-1010%201-x-"
+;;                            "54236-54236-1-11-54236-54236%20"))
+
+
+;; FWI-Description
 ;; Another weird format for specifying descriptions which is basically a
 ;; string of space delimited names.  A space in a name is represented as
 ;; __ (two underscores).  The space delimeter is written as %20.
-(define descriptions (string-append "HTTP__Server%20FTP__Server%20Half__Life"
-                                    "__Server%20Ventrilo%20Sins%20freeNX%20"
-                                    "remotedesktop%20freeNX%20__%20"))
+;; Example:
+;; (define descriptions (string-append "HTTP__Server%20FTP__Server%20Half__Life"
+;;                                     "__Server%20Ventrilo%20Sins%20freeNX%20"
+;;                                     "remotedesktop%20freeNX%20__%20"))
 
 
 ;; The settings datum

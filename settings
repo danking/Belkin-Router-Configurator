@@ -1,2 +1,3 @@
-(("HTTP Server" #t TCP 2 (80 80) (80 80))
+;; -*- mode: scheme -*-
+(;("HTTP Server" #t TCP 2 (80 80) (80 80))
  ("SSH" #t TCP 2 (22 22) (22 22)))

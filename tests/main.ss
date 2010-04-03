@@ -1,5 +1,5 @@
 #lang scheme
-(require test-engine/scheme-gui)
+(require test-engine/scheme-tests)
 (require (only-in "../main.ss" valid-syntax? build-fwi build-descriptions))
 
 (check-expect (valid-syntax? '("Ventrilo" #t TCP 101 (80 80) (80 80))) true)
